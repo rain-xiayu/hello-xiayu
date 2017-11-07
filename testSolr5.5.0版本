@@ -1,0 +1,143 @@
+package comfivefivezero.test;
+
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.solr.client.solrj.SolrQuery;
+import org.apache.solr.client.solrj.SolrServerException;
+import org.apache.solr.client.solrj.impl.HttpSolrClient;
+import org.apache.solr.client.solrj.response.QueryResponse;
+import org.apache.solr.common.SolrDocument;
+import org.apache.solr.common.SolrDocumentList;
+import org.apache.solr.common.SolrInputDocument;
+import org.junit.Before;
+import org.junit.Test;
+
+import comfivefivezero.dto.Msg;
+
+
+public class Solr550Test {
+//	private final static String URL = "http://localhost:8083/solr";
+	private final static String URL = "http://localhost:8084/solr/mycore";
+	private static HttpSolrClient server = null;
+	
+	@Before
+	public void init(){
+		server = new HttpSolrClient(URL);
+	}
+	
+	@Test
+	public void testcreate(){
+		SolrInputDocument doc = new SolrInputDocument();
+//		doc.addField("id", "6");
+//		doc.addField("title", "测试标题一下下而已");
+//		doc.addField("content", "这就是一个简单的测试，没有别的意思，千万别误会！");
+//		doc.addField("id", "7");
+//		doc.addField("title", "测试一下复合查询的问题是怎么回事的");
+//		doc.addField("content", "这里我刚刚使用solr来进行复合查询发现查询不出来数据，所以由进行网络一个测试");
+//		doc.addField("id", "12");
+//		doc.addField("title", "测试一下新加的拓展词汇效果怎么样");
+//		doc.addField("content", "最近有一部电视机比较火，它的名字叫做《三生三世十里桃花》");
+		doc.addField("id", "13");
+		doc.addField("title", "测试一下新加的拓展词汇效果是不是准确");
+		doc.addField("content", "最近有一个相声，相声里面也提到了三生三世，但那原话是要说三生三世的相声。");
+		try {
+			server.add(doc);
+			server.commit();
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+
+	@Test
+	public void testQuery(){
+		SolrQuery query = new SolrQuery("*:*");
+//		SolrQuery query = new SolrQuery("别误会");
+		query.setStart(0);
+		query.setRows(10);
+		try {
+			QueryResponse rsp = server.query(query);
+			SolrDocumentList results = rsp.getResults();
+			System.out.println("查询总条数为："+results.getNumFound());
+			for(SolrDocument sd : results){
+				System.out.println(sd);
+			}
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
+	public void testDelete(){
+		try {
+			server.deleteByQuery("*:*");
+			server.commit();
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
+	public void testDeleteById(){
+		String id = "";
+		try {
+			server.deleteById(id);
+			server.commit();
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
+	public void testAddBean(){
+		List<Msg> listMsg = new ArrayList<Msg>();
+		listMsg.add(new Msg("8","测试beans的第一个","这是我的第八个测试结果，使用的是通过list来添加对象"));
+		listMsg.add(new Msg("9","测试beans的第二个","这是我的第九个测试结果，比第八个更高级一点点"));
+		listMsg.add(new Msg("10","solr5.5处理方式","需要注意的是低版本是solr是使用SolrServer进行URL实例的，5.0之后已经使用SolrClient替代这个类了，在添加之后首先我们需要根据schema.xml配置一下我们的分词器"));
+		listMsg.add(new Msg("11","测试beans的第二个","这是我的第九个测试结果，比第八个更高级一点点"));
+		try {
+			server.addBeans(listMsg);
+			server.commit();
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}
+	
+	@Test
+	public void testHL(){
+		SolrDocumentList docList = new SolrDocumentList();
+//		SolrDocument doc = new SolrDocument();
+		
+		SolrQuery query = new SolrQuery("solr");
+		query.setStart(0);
+		query.setRows(5);
+		query.setHighlight(true).setHighlightSimplePre("<span class='hight'>").setHighlightSimplePost("</span>");
+		query.setParam("hl.fl", "content");
+		
+		try {
+			QueryResponse resp = server.query(query);
+			docList	= resp.getResults();
+			for(SolrDocument doc : docList){
+				System.out.println("id : "+ doc.getFieldValue("id"));
+				System.out.println("title : "+doc.getFieldValue("title"));
+				System.out.println("content : "+doc.getFieldValue("content"));
+				System.out.println(resp.getHighlighting());
+			}
+		} catch (SolrServerException e) {
+			e.printStackTrace();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}	
+	}
+}
